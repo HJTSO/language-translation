@@ -322,10 +322,13 @@ def decoding_layer_infer(encoder_state, dec_cell, dec_embeddings, start_of_seque
         maximum_length,
         vocab_size
     )
-    dropout = tf.contrib.rnn.DropoutWrapper(dec_cell, keep_prob)
+    
+    # 在推断阶段，一般不建议使用dropout
+    # 因为dropout主要用处是在训练阶段加入正则化，而在推断阶段很有可能影响预测效果。
+    # dropout = tf.contrib.rnn.DropoutWrapper(dec_cell, keep_prob)
     
     outputs, state, context = tf.contrib.seq2seq.dynamic_rnn_decoder(
-        dropout,
+        dec_cell,
         decode_inference,
         sequence_length = maximum_length,
         scope = decoding_scope
@@ -491,21 +494,34 @@ tests.test_seq2seq_model(seq2seq_model)
 # - 将 `learning_rate` 设为训练速率。
 # - 将 `keep_probability` 设为丢弃保留率（Dropout keep probability）。
 
-# In[25]:
+# In[14]:
 
 # Number of Epochs
 epochs = 4
+
 # Batch Size
 batch_size = 128
+
 # RNN Size
 rnn_size = 256
+
 # Number of Layers
-num_layers = 3
+num_layers = 2
+# 如果选用了3层，网络结构较大，每层256个LSTM单元的RNN，可能导致过拟合等问题。
+# 从过往的情况来看，2层、每层128~256个LSTM单元的RNN，配合上0.5~0.7的保留率，比较适合这里使用的数据集
+
 # Embedding Size
-encoding_embedding_size = 128
-decoding_embedding_size = 128
+encoding_embedding_size = 256
+decoding_embedding_size = 256
+# 词嵌入维度embedding_size：词嵌入维度刻画了模型表达词汇的能力，对于翻译任务，一般需与数据集的词汇量大小保持一致。
+# 在词嵌入维度较小的时候，词汇容易被映射到相近的区域，互相之间缺乏有效区分，进而降低翻译质量。
+# 由于当前数据集的英语词汇量为227，建议提高两个词嵌入维度embedding_size至256。
+
 # Learning Rate
-learning_rate = 0.01
+learning_rate = 0.001
+# 目 0.01的学习率稍大，容易导致训练过程波动，影响最后的收敛结果。
+# 降低learning_rate至0.001，可能能够得到更好的翻译效果。
+
 # Dropout Keep Probability
 keep_probability = 0.7
 
@@ -514,7 +530,7 @@ keep_probability = 0.7
 # 
 # 使用你实现的神经网络构建图表。
 
-# In[26]:
+# In[15]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -554,7 +570,7 @@ with train_graph.as_default():
 # 
 # 利用预处理的数据训练神经网络。如果很难获得低损失值，请访问我们的论坛，看看其他人是否遇到了相同的问题。
 
-# In[27]:
+# In[16]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -624,7 +640,7 @@ with tf.Session(graph=train_graph) as sess:
 # 
 # 保存 `batch_size` 和 `save_path` 参数以进行推论（for inference）。
 
-# In[28]:
+# In[17]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -635,7 +651,7 @@ helper.save_params(save_path)
 
 # # 检查点
 
-# In[29]:
+# In[18]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -657,7 +673,7 @@ load_path = helper.load_params()
 # - 使用 `vocab_to_int` 将单词转换为 id
 #  - 如果单词不在词汇表中，将其转换为`<UNK>` 单词 id
 
-# In[31]:
+# In[19]:
 
 def sentence_to_seq(sentence, vocab_to_int):
     """
@@ -688,7 +704,7 @@ tests.test_sentence_to_seq(sentence_to_seq)
 # 
 # 将 `translate_sentence` 从英语翻译成法语。
 
-# In[32]:
+# In[20]:
 
 translate_sentence = 'he saw a old yellow truck .'
 
